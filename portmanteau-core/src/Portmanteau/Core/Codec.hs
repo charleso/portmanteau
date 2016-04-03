@@ -49,3 +49,4 @@ infixl 5 |*
 (|||) :: (Decidable f, Alternative g) => Codec' f g a c -> Codec' f g b d -> Codec' f g (Either a b) (Either c d)
 (|||) (Codec f0 g0) (Codec f1 g1) =
   Codec (f0 `chosen` f1) (Left <$> g0 <|> Right <$> g1)
+infixl 4 |||

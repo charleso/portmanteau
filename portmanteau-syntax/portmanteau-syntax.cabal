@@ -1,0 +1,49 @@
+name:                  portmanteau-syntax
+version:               0.0.1
+license:               AllRightsReserved
+author:                Charles O'Farrell <charleso@charleso.org>
+maintainer:            Charles O'Farrell <charleso@charleso.org>
+copyright:             (c) 2016 Charles O'Farrell.
+synopsis:              portmanteau-syntax
+category:              System
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           portmanteau-syntax
+
+library
+  build-depends:
+                      base                            >= 3          && < 5
+                    , ambiata-p
+                    , attoparsec                      == 0.13.*
+                    , contravariant                   == 1.4.*
+                    , parsers                         == 0.12.*
+                    , portmanteau-core
+                    , pretty                          == 1.1.*
+                    , text                            == 1.2.*
+                    , transformers                    >= 0.4        && < 0.6
+
+  ghc-options:
+                    -Wall
+
+  hs-source-dirs:
+                    src
+
+  exposed-modules:
+                      Portmanteau.Syntax
+                      Portmanteau.Syntax.Attoparsec
+
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             test.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , ambiata-p
+                     , parsers
+                     , portmanteau-core
+                     , portmanteau-syntax
+                     , profunctors
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , text
