@@ -18,14 +18,17 @@ import           Test.QuickCheck.Instances ()
 
 
 prop_aeson_example_1 (a :: Text) =
-  jsonCodecTripping jsonCodec
+  jsonCodecTripping a jsonCodec
 
-prop_aeson_example_object (a :: (Text, Int)) =
-  jsonCodecTripping (liftJsonObjectCodec $ jsonObjectCodec "a" |*| jsonObjectCodec "b")
+prop_aeson_example_object (a :: ((Text, Int), [Bool])) =
+  jsonCodecTripping a . liftJsonObjectCodec $
+        "a" .| jsonCodec
+    |*| "b" .| jsonCodec
+    |*| "c" .| jsonCodec
 
 
-jsonCodecTripping :: (Eq a, Show a) => JsonCodec a a -> a -> Property
-jsonCodecTripping c a =
+jsonCodecTripping :: (Eq a, Show a) => a -> JsonCodec a a -> Property
+jsonCodecTripping a c =
   jsonCodecDecode c (jsonCodecEncode c a) === pure a
 
 
