@@ -4,6 +4,7 @@ module Portmanteau.Aeson (
   , JsonObjectCodec
   , jsonCodec
   , jsonObjectCodec
+  , (.|)
   , liftJsonObjectCodec
   , jsonCodecEncode
   , jsonCodecDecode
@@ -33,11 +34,17 @@ jsonCodec :: (ToJSON a, FromJSON b) => JsonCodec a b
 jsonCodec =
   parserCodec toJSON parseJSON
 
-jsonObjectCodec :: (ToJSON a, FromJSON b) => Text -> JsonObjectCodec a b
-jsonObjectCodec t =
-  parserCodec
-    (HM.singleton t . toJSON)
-    (maybe (fail $ "Not found " <> T.unpack t) parseJSON . HM.lookup t)
+jsonObjectCodec :: Text -> JsonCodec a b -> JsonObjectCodec a b
+jsonObjectCodec t c = let
+  (e, d) = case c of Codec (Op e') (ReaderT d') -> (e', d')
+  in parserCodec
+    (HM.singleton t . ($) e)
+    (maybe (fail $ "Not found " <> T.unpack t) (($) d) . HM.lookup t)
+
+(.|) :: Text -> JsonCodec a b -> JsonObjectCodec a b
+(.|) =
+  jsonObjectCodec
+infixl 8 .|
 
 liftJsonObjectCodec :: JsonObjectCodec a b -> JsonCodec a b
 liftJsonObjectCodec (Codec f g) =
