@@ -1,15 +1,16 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Test.Portmanteau.Syntax.Json where
 
 import           Data.Functor.Contravariant (Op (..))
-import           Data.Profunctor (Profunctor (..))
 import qualified Data.Text as T
 
 import           P
 
 import           Portmanteau.Core
+import           Portmanteau.Lens
 import           Portmanteau.Syntax
 
 import           Test.QuickCheck (Arbitrary (..), Gen, oneof)
@@ -22,13 +23,14 @@ import qualified Text.PrettyPrint as PP
 
 
 data JsonValue =
-    JsonArray [JsonValue]
-  | JsonBool Bool
+    JsonBool Bool
+  | JsonNull
   | JsonNumber Rational
   | JsonString [Char]
-  | JsonNull
+  | JsonArray [JsonValue]
   | JsonObject [([Char], JsonValue)]
   deriving (Show, Eq)
+makeIso ''JsonValue
 
 instance Arbitrary JsonValue where
   arbitrary =
@@ -42,27 +44,11 @@ instance Arbitrary JsonValue where
       ]
 
 
+
 jsonSyntaxCodec :: (CharParsing m, Monad m) => SyntaxCodec m JsonValue
 jsonSyntaxCodec =
-  -- FIX The plan is to be able to derive this from Generics
-  dimap
-    (\case
-        JsonBool b -> Left . Left . Left . Left . Left $ b
-        JsonNull -> Left . Left . Left . Left . Right $ ()
-        JsonNumber n -> Left . Left . Left . Right $ n
-        JsonString s -> Left . Left . Right $ s
-        JsonArray a -> Left . Right $ a
-        JsonObject a -> Right a
-      )
-    (\case
-        Left (Left (Left (Left (Left a)))) -> JsonBool a
-        Left (Left (Left (Left (Right ())))) -> JsonNull
-        Left (Left (Left (Right n))) -> JsonNumber n
-        Left (Left (Right s)) -> JsonString s
-        Left (Right a) -> JsonArray a
-        Right o -> JsonObject o
-      )
-    $   jsonBoolSyntax
+  _JsonValue
+    |$| jsonBoolSyntax
     ||| jsonNullSyntax
     ||| jsonNumberSyntax
     ||| jsonStringSyntax
@@ -72,10 +58,8 @@ jsonSyntaxCodec =
 
 jsonBoolSyntax :: CharParsing m => SyntaxCodec m Bool
 jsonBoolSyntax =
-  dimap
-    (bool (Left ()) (Right ()))
-    (either (\() -> False) (\() -> True))
-    $   literal "false"
+  _Bool
+    |$| literal "false"
     ||| literal "true"
 
 jsonNullSyntax :: CharParsing m => SyntaxCodec m ()

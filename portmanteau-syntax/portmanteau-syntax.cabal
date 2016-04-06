@@ -40,9 +40,12 @@ test-suite test
   hs-source-dirs:      test
   build-depends:       base
                      , ambiata-p
+                     , contravariant
                      , parsers
                      , portmanteau-core
+                     , portmanteau-lens
                      , portmanteau-syntax
+                     , pretty
                      , profunctors
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
