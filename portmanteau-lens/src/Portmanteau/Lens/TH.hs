@@ -46,13 +46,12 @@ module Portmanteau.Lens.TH (
 
 import          Control.Lens
 
-import          Data.List (replicate, init, last, unzip)
+import          Data.List (replicate, zipWith)
 import          Data.String (String)
 
 import          Language.Haskell.TH
 
-import          P hiding (error)
-import          Prelude (error)
+import          P hiding (exp)
 
 
 -- | Make an 'Iso' for the named type.
@@ -72,115 +71,155 @@ makeIso =
 makeIsoWith :: (String -> String) -> Name -> Q [Dec]
 makeIsoWith f d = do
   info <- reify d
+
+  (dname, cs) <-
+    case info of
+      TyConI (DataD _ name _ cs' _) ->
+        pure (name, cs')
+      TyConI (NewtypeD _ name _ c _) ->
+        pure (name, [c])
+      _ ->
+        fail $ show d <> " neither denotes a data or newtype declaration. Found: " <> show info
+
   let
-    (n, cs) = case info of
-      TyConI (DataD _ n' _ cs' _) -> (n', cs')
-      TyConI (NewtypeD _ n' _ c _) -> (n', [c])
-      _ -> error $ show d
-        <> " neither denotes a data or newtype declaration. Found: "
-        <> show info
-  let n' = rename f n
-  sig <- sigFromName n' n cs
-  body <- defFromName n' cs
+    name =
+      mkName . f $ nameBase dname
+
+  sig <- signatureOfData name dname cs
+  body <- bodyOfData name cs
+
   return [sig, body]
 
-sigFromName :: Name -> Name -> [Con] -> Q Dec
-sigFromName n' n cs = sigD n'
-  (conT (mkName "Iso'") `appT` sigFromCons cs `appT` conT n)
+signatureOfData :: Name -> Name -> [Con] -> Q Dec
+signatureOfData name dname cs =
+  sigD name $
+    conT (mkName "Iso'") `appT` typeOfData cs `appT` conT dname
 
-sigFromCons :: [Con] -> TypeQ
-sigFromCons = \case
-  [] ->
-    error "makeIso not available for zero-constructor types"
-  [x] ->
-    sigFromCon x
-  xs -> do
-    -- FIX foldr???
-    let
-      ys = init xs
-      y = last xs
-      eitherT = conT (mkName "Either")
-    appT (appT eitherT (sigFromCons ys)) (sigFromCon y)
+typeOfData :: [Con] -> TypeQ
+typeOfData cs =
+  case unsnoc cs of
+    Nothing ->
+      fail "makeIso not available for zero-constructor types"
+    Just ([], x) ->
+      typeOfConstructor x
+    Just (xs, x) ->
+      conT (mkName "Either") `appT` typeOfData xs `appT` typeOfConstructor x
 
-sigFromCon :: Con -> TypeQ
-sigFromCon = \case
+typeOfConstructor :: Con -> TypeQ
+typeOfConstructor = \case
   NormalC _ fields ->
-    return $ sigFromTypes (fmap (view _2) fields)
+    return $ typeOfFields (fmap (view _2) fields)
   RecC _ fields ->
-    return $ sigFromTypes (fmap (view _3) fields)
+    return $ typeOfFields (fmap (view _3) fields)
   InfixC (_,t1) _ (_,t2) ->
-    return $ sigFromTypes [t1, t2]
+    return $ typeOfFields [t1, t2]
   ForallC {} ->
     fail "makeIso not available for existential data constructors"
 
-sigFromTypes :: [Type] -> Type
-sigFromTypes = \case
-  [] ->
-    TupleT 0
-  [t] ->
-    t
-  ts ->
-    let
-      ys = init ts
-      y = last ts
-    in
-      AppT (AppT (TupleT 2) (sigFromTypes ys)) y
+typeOfFields :: [Type] -> Type
+typeOfFields ts =
+  case unsnoc ts of
+    Nothing ->
+      TupleT 0
+    Just ([], x) ->
+      x
+    Just (xs, x) ->
+      TupleT 2 `AppT` typeOfFields xs `AppT` x
 
-defFromName :: Name -> [Con] -> Q Dec
-defFromName n' cs = do
+bodyOfData :: Name -> [Con] -> Q Dec
+bodyOfData name cs = do
   let
-    expr = varE (mkName "iso") `appE` varE (mkName "f") `appE` varE (mkName "g")
-  wheres <- whereFromCons cs
-  funD n' [clause [] (normalB expr) (fmap return wheres)]
+    n =
+      length cs
 
-whereFromCons :: [Con] -> Q [Dec]
-whereFromCons cs = do
-  (fs, gs) <- unzip <$> zipWithM (fgFromCon (length cs)) [0..] cs
-  fDec <- funD (mkName "f") (fmap return fs)
-  gDec <- funD (mkName "g") (fmap return gs)
-  return [fDec, gDec]
+    exp =
+      letE [
+          fun (mkName "decode") . lamCaseE $
+            zipWith (decodeOfConstructor n) [0..] cs
 
-fgFromCon :: Int -> Int -> Con -> Q (Clause, Clause)
-fgFromCon nCons i (NormalC n fields) = fgClauses nCons i (length fields) n
-fgFromCon nCons i (RecC n fields) = fgClauses nCons i (length fields) n
-fgFromCon nCons i (InfixC _ n _) = fgClauses nCons i 2 n
-fgFromCon _ _ (ForallC {}) =
-  error "makeIso not available for existential data constructors"
+        , fun (mkName "encode") . lamCaseE $
+            zipWith (encodeOfConstructor n) [0..] cs
+        ] $
+      varE (mkName "iso") `appE`
+        varE (mkName "decode") `appE`
+        varE (mkName "encode")
 
-fgClauses :: Int -> Int -> Int -> Name -> Q (Clause, Clause)
-fgClauses nCons i nFields n = do
-  (pats, exprs) <- genPE nFields
+  fun name exp
+
+decodeOfConstructor :: Int -> Int -> Con -> MatchQ
+decodeOfConstructor n i con = do
+  (pats, exps) <- newNamesPE =<< sizeOfConstructor con
+
   let
-    fPat = nestedSum (\s -> conP (mkName s) . (:[])) nCons i (nested tupP pats)
-    gExp = nestedSum (appE . conE . mkName) nCons i (nested tupE exprs)
-  fClause <- clause [fPat] (normalB [| $(foldl appE (conE n) exprs) |]) []
-  gClause <- clause [conP n pats] (normalB gExp) []
-  return (fClause, gClause)
+    pat =
+      nestedSum (\s -> conP (mkName s) . (:[])) n i (nestedProduct tupP pats)
 
-rename :: (String -> String) -> Name -> Name
-rename f = mkName . f . nameBase
+    exp =
+      foldl appE (conE (nameOfConstructor con)) exps
 
-genPE :: Int -> Q ([PatQ], [ExpQ])
-genPE number = do
+  match pat (normalB exp) []
+
+encodeOfConstructor :: Int -> Int -> Con -> MatchQ
+encodeOfConstructor n i con = do
+  (pats, exps) <- newNamesPE =<< sizeOfConstructor con
+
+  let
+    pat =
+      conP (nameOfConstructor con) pats
+
+    exp =
+      nestedSum (appE . conE . mkName) n i (nestedProduct tupE exps)
+
+  match pat (normalB exp) []
+
+nestedSum :: (String -> t -> t) -> Int -> Int -> t -> t
+nestedSum f n i pat =
+  if n == 1 then
+    pat
+  else
+    foldr (.) id (replicate (n - i - 1) (f "Left")) $
+      if i > 0 then
+        f "Right" pat
+      else
+        pat
+
+nestedProduct :: ([t] -> t) -> [t] -> t
+nestedProduct tup ts =
+  case unsnoc ts of
+    Nothing ->
+      tup []
+    Just ([], x) ->
+      x
+    Just (xs, x) ->
+      tup [nestedProduct tup xs, x]
+
+nameOfConstructor :: Con -> Name
+nameOfConstructor = \case
+  NormalC cname _ ->
+    cname
+  RecC cname _ ->
+    cname
+  InfixC _ cname _ ->
+    cname
+  ForallC _ _ con ->
+    nameOfConstructor con
+
+sizeOfConstructor :: Con -> Q Int
+sizeOfConstructor = \case
+  NormalC _ fields ->
+    pure $ length fields
+  RecC _ fields ->
+    pure $ length fields
+  InfixC _ _ _ ->
+    pure 2
+  ForallC _ _ _ ->
+    fail "makeIso not available for existential data constructors"
+
+newNamesPE :: Int -> Q ([PatQ], [ExpQ])
+newNamesPE number = do
   ids <- replicateM number (newName "x")
   return (fmap varP ids, fmap varE ids)
 
-nestedSum :: (String -> t -> t) -> Int -> Int -> t -> t
-nestedSum _ 1 _ pat = pat
-nestedSum f n i pat =
-  foldr (.) id
-  (replicate (n - i - 1) (f "Left"))
-  (if i > 0 then f "Right" pat else pat)
-
-nested :: ([t] -> t) -> [t] -> t
-nested tup = \case
-  [] ->
-    tup []
-  [x] ->
-    x
-  xs ->
-    let
-      ys = init xs
-      y = last xs
-    in
-      tup [nested tup ys, y]
+fun :: Name -> ExpQ -> DecQ
+fun name exp =
+  funD name [clause [] (normalB exp) []]
