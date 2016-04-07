@@ -1,6 +1,8 @@
 Portmanteau
 ===========
 
+[![Build Status](https://travis-ci.org/charleso/portmanteau.svg?branch=master)](https://travis-ci.org/charleso/portmanteau)
+
 > You see it's like a portmanteau—there are two meanings packed up into one word.
 > - Humpty Dumpty
 
