@@ -12,8 +12,7 @@ import           Portmanteau.Aeson
 
 import           System.IO (IO)
 
-import           Test.QuickCheck (Testable, Property, (===), conjoin, quickCheckAll)
-import           Test.QuickCheck.Monadic (monadicIO, run, stop)
+import           Test.QuickCheck (Property, (===), quickCheckAll)
 import           Test.QuickCheck.Instances ()
 
 

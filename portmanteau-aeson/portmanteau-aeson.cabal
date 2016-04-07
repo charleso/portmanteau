@@ -39,5 +39,6 @@ test-suite test
   build-depends:       base
                      , ambiata-p
                      , portmanteau-aeson
+                     , portmanteau-core
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
