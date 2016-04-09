@@ -11,10 +11,10 @@ module Portmanteau.Binary.VInt (
   , putVInt64
   ) where
 
+import           Data.Binary.Builder (Builder)
+import qualified Data.Binary.Builder as Binary
 import           Data.Binary.Get (Get)
 import qualified Data.Binary.Get as Binary
-import           Data.Binary.Put (Put)
-import qualified Data.Binary.Put as Binary
 import           Data.Bits ((.&.), (.|.), complement, shiftL, shiftR, bit)
 import qualified Data.ByteString as B
 import           Data.Word (Word8)
@@ -83,10 +83,10 @@ getVInt =
   fromIntegral <$> getVInt64
 {-# INLINE getVInt #-}
 
-putVInt64 :: Int64 -> Put
+putVInt64 :: Int64 -> Builder
 putVInt64 v =
   if v >= -112 && v <= 127 then
-    Binary.putWord8 $ fromIntegral v
+    Binary.singleton $ fromIntegral v
   else
     let
       (base, value) =
@@ -95,41 +95,49 @@ putVInt64 v =
         else
           (-121, complement v)
     in
-      if value < bit 8 then do
-        Binary.putWord8 base
-        Binary.putWord8 . fromIntegral $ value
-      else if value < bit 16 then do
-        Binary.putWord8 $ base - 1
-        Binary.putWord8 . fromIntegral $ value `shiftR` 8
-        Binary.putWord8 . fromIntegral $ value
-      else if value < bit 24 then do
-        Binary.putWord8 $ base - 2
-        Binary.putWord8 . fromIntegral $ value `shiftR` 16
-        Binary.putWord8 . fromIntegral $ value `shiftR` 8
-        Binary.putWord8 . fromIntegral $ value
-      else if value < bit 32 then do
-        Binary.putWord8 $ base - 3
-        Binary.putWord32be . fromIntegral $ value
-      else if value < bit 40 then do
-        Binary.putWord8 $ base - 4
-        Binary.putWord32be . fromIntegral $ value `shiftR` 8
-        Binary.putWord8 . fromIntegral $ value
-      else if value < bit 48 then do
-        Binary.putWord8 $ base - 5
-        Binary.putWord32be . fromIntegral $ value `shiftR` 16
-        Binary.putWord8 . fromIntegral $ value `shiftR` 8
-        Binary.putWord8 . fromIntegral $ value
-      else if value < bit 56 then do
-        Binary.putWord8 $ base - 6
-        Binary.putWord32be . fromIntegral $ value `shiftR` 24
-        Binary.putWord8 . fromIntegral $ value `shiftR` 16
-        Binary.putWord8 . fromIntegral $ value `shiftR` 8
-        Binary.putWord8 . fromIntegral $ value
-      else do
-        Binary.putWord8 $ base - 7
-        Binary.putWord64be . fromIntegral $ value
+      if value < bit 8 then mconcat [
+          Binary.singleton base
+        , Binary.singleton . fromIntegral $ value
+        ]
+      else if value < bit 16 then mconcat [
+          Binary.singleton $ base - 1
+        , Binary.singleton . fromIntegral $ value `shiftR` 8
+        , Binary.singleton . fromIntegral $ value
+        ]
+      else if value < bit 24 then mconcat [
+          Binary.singleton $ base - 2
+        , Binary.singleton . fromIntegral $ value `shiftR` 16
+        , Binary.singleton . fromIntegral $ value `shiftR` 8
+        , Binary.singleton . fromIntegral $ value
+        ]
+      else if value < bit 32 then mconcat [
+          Binary.singleton $ base - 3
+        , Binary.putWord32be . fromIntegral $ value
+        ]
+      else if value < bit 40 then mconcat [
+          Binary.singleton $ base - 4
+        , Binary.putWord32be . fromIntegral $ value `shiftR` 8
+        , Binary.singleton . fromIntegral $ value
+        ]
+      else if value < bit 48 then mconcat [
+          Binary.singleton $ base - 5
+        , Binary.putWord32be . fromIntegral $ value `shiftR` 16
+        , Binary.singleton . fromIntegral $ value `shiftR` 8
+        , Binary.singleton . fromIntegral $ value
+        ]
+      else if value < bit 56 then mconcat [
+          Binary.singleton $ base - 6
+        , Binary.putWord32be . fromIntegral $ value `shiftR` 24
+        , Binary.singleton . fromIntegral $ value `shiftR` 16
+        , Binary.singleton . fromIntegral $ value `shiftR` 8
+        , Binary.singleton . fromIntegral $ value
+        ]
+      else mconcat [
+          Binary.singleton $ base - 7
+        , Binary.putWord64be . fromIntegral $ value
+        ]
 
-putVInt :: Int -> Put
+putVInt :: Int -> Builder
 putVInt =
   putVInt64 . fromIntegral
 {-# INLINE putVInt #-}

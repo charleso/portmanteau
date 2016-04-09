@@ -7,7 +7,7 @@ module Portmanteau.Binary.Primitives (
   ) where
 
 import qualified Data.Binary.Get as B
-import qualified Data.Binary.Put as B
+import qualified Data.Binary.Builder as B
 import           Data.ByteString (ByteString)
 import qualified Data.Word as W
 
@@ -18,11 +18,11 @@ import           Portmanteau.Binary.Codec
 
 byteString :: Int -> BinaryCodec ByteString
 byteString i =
-  binaryCodec' B.putByteString (B.getByteString i)
+  binaryCodec' B.fromByteString (B.getByteString i)
 
 word8 :: BinaryCodec W.Word8
 word8 =
-  binaryCodec' B.putWord8 B.getWord8
+  binaryCodec' B.singleton B.getWord8
 
 word16le :: BinaryCodec W.Word16
 word16le =
