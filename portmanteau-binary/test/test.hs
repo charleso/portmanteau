@@ -3,12 +3,14 @@ import           System.Exit (exitFailure)
 import           System.IO (BufferMode (..), stdout, stderr, hSetBuffering)
 
 import qualified Test.Portmanteau.Binary.Trade
+import qualified Test.Portmanteau.Binary.Sequence
 
 
 main :: IO ()
 main =
   testAll [
       Test.Portmanteau.Binary.Trade.tests
+    , Test.Portmanteau.Binary.Sequence.tests
     ]
 
 

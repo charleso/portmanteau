@@ -31,6 +31,7 @@ library
                       Portmanteau.Binary
                       Portmanteau.Binary.Codec
                       Portmanteau.Binary.Primitives
+                      Portmanteau.Binary.VInt
 
 
 test-suite test
@@ -43,5 +44,10 @@ test-suite test
                      , portmanteau-binary
                      , portmanteau-core
                      , portmanteau-lens
+                     , binary                          == 0.8.*
+                     , bytestring                      == 0.10.*
+                     , contravariant                   == 1.4.*
+                     , profunctors                     == 5.2.*
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
+                     , text                            == 1.2.*
