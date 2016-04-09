@@ -41,13 +41,6 @@ instance Arbitrary Trade where
       <*> arbitrary
 
 
-prop_codec_trade_binary a =
-  binaryCodecTripping a $
-    _Trade
-      |$| binaryCodec
-      |*| binaryCodec
-      |*| binaryCodec
-
 prop_codec_trade_primitives a =
   binaryCodecTripping a $
     _Trade

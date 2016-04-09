@@ -11,12 +11,12 @@ module Portmanteau.Binary.VInt (
   , putVInt64
   ) where
 
-import           Data.Binary.Builder (Builder)
-import qualified Data.Binary.Builder as Binary
 import           Data.Binary.Get (Get)
 import qualified Data.Binary.Get as Binary
 import           Data.Bits ((.&.), (.|.), complement, shiftL, shiftR, bit)
 import qualified Data.ByteString as B
+import           Data.ByteString.Builder (Builder)
+import qualified Data.ByteString.Builder as Builder
 import           Data.Word (Word8)
 
 import           P
@@ -86,7 +86,7 @@ getVInt =
 putVInt64 :: Int64 -> Builder
 putVInt64 v =
   if v >= -112 && v <= 127 then
-    Binary.singleton $ fromIntegral v
+    Builder.word8 $ fromIntegral v
   else
     let
       (base, value) =
@@ -96,45 +96,45 @@ putVInt64 v =
           (-121, complement v)
     in
       if value < bit 8 then mconcat [
-          Binary.singleton base
-        , Binary.singleton . fromIntegral $ value
+          Builder.word8 base
+        , Builder.word8 . fromIntegral $ value
         ]
       else if value < bit 16 then mconcat [
-          Binary.singleton $ base - 1
-        , Binary.singleton . fromIntegral $ value `shiftR` 8
-        , Binary.singleton . fromIntegral $ value
+          Builder.word8 $ base - 1
+        , Builder.word8 . fromIntegral $ value `shiftR` 8
+        , Builder.word8 . fromIntegral $ value
         ]
       else if value < bit 24 then mconcat [
-          Binary.singleton $ base - 2
-        , Binary.singleton . fromIntegral $ value `shiftR` 16
-        , Binary.singleton . fromIntegral $ value `shiftR` 8
-        , Binary.singleton . fromIntegral $ value
+          Builder.word8 $ base - 2
+        , Builder.word8 . fromIntegral $ value `shiftR` 16
+        , Builder.word8 . fromIntegral $ value `shiftR` 8
+        , Builder.word8 . fromIntegral $ value
         ]
       else if value < bit 32 then mconcat [
-          Binary.singleton $ base - 3
-        , Binary.putWord32be . fromIntegral $ value
+          Builder.word8 $ base - 3
+        , Builder.word32BE . fromIntegral $ value
         ]
       else if value < bit 40 then mconcat [
-          Binary.singleton $ base - 4
-        , Binary.putWord32be . fromIntegral $ value `shiftR` 8
-        , Binary.singleton . fromIntegral $ value
+          Builder.word8 $ base - 4
+        , Builder.word32BE . fromIntegral $ value `shiftR` 8
+        , Builder.word8 . fromIntegral $ value
         ]
       else if value < bit 48 then mconcat [
-          Binary.singleton $ base - 5
-        , Binary.putWord32be . fromIntegral $ value `shiftR` 16
-        , Binary.singleton . fromIntegral $ value `shiftR` 8
-        , Binary.singleton . fromIntegral $ value
+          Builder.word8 $ base - 5
+        , Builder.word32BE . fromIntegral $ value `shiftR` 16
+        , Builder.word8 . fromIntegral $ value `shiftR` 8
+        , Builder.word8 . fromIntegral $ value
         ]
       else if value < bit 56 then mconcat [
-          Binary.singleton $ base - 6
-        , Binary.putWord32be . fromIntegral $ value `shiftR` 24
-        , Binary.singleton . fromIntegral $ value `shiftR` 16
-        , Binary.singleton . fromIntegral $ value `shiftR` 8
-        , Binary.singleton . fromIntegral $ value
+          Builder.word8 $ base - 6
+        , Builder.word32BE . fromIntegral $ value `shiftR` 24
+        , Builder.word8 . fromIntegral $ value `shiftR` 16
+        , Builder.word8 . fromIntegral $ value `shiftR` 8
+        , Builder.word8 . fromIntegral $ value
         ]
       else mconcat [
-          Binary.singleton $ base - 7
-        , Binary.putWord64be . fromIntegral $ value
+          Builder.word8 $ base - 7
+        , Builder.word64BE . fromIntegral $ value
         ]
 
 putVInt :: Int -> Builder

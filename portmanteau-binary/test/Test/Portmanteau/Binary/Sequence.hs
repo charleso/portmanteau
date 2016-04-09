@@ -6,10 +6,10 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Portmanteau.Binary.Sequence where
 
-import qualified Data.Binary.Builder as Binary
 import qualified Data.Binary.Get as Binary
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Builder as Builder
 import           Data.Functor.Contravariant (Contravariant (..))
 import           Data.Functor.Contravariant.Divisible (Divisible (..), Decidable (..), divided)
 import           Data.Profunctor (Profunctor (..))
@@ -95,7 +95,7 @@ sizedList (Codec f0 g0) (Codec f1 g1) =
 vintPrefixedBytes :: BinaryCodec ByteString
 vintPrefixedBytes =
   binaryCodec'
-    (\bs -> putVInt (B.length bs) <> Binary.fromByteString bs)
+    (\bs -> putVInt (B.length bs) <> Builder.byteString bs)
     (getVInt >>= Binary.getByteString)
 
 textWritable :: BinaryCodec Text
