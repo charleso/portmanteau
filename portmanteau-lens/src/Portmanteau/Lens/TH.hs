@@ -128,21 +128,23 @@ typeOfFields ts =
 
 bodyOfData :: Name -> [Con] -> Q Dec
 bodyOfData name cs = do
+  dn <- newName "decode"
+  en <- newName "encode"
   let
     n =
       length cs
 
     exp =
       letE [
-          fun (mkName "decode") . lamCaseE $
+          fun dn . lamCaseE $
             zipWith (decodeOfConstructor n) [0..] cs
 
-        , fun (mkName "encode") . lamCaseE $
+        , fun en . lamCaseE $
             zipWith (encodeOfConstructor n) [0..] cs
         ] $
       varE (mkName "iso") `appE`
-        varE (mkName "decode") `appE`
-        varE (mkName "encode")
+        varE dn `appE`
+        varE en
 
   fun name exp
 

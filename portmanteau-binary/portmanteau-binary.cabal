@@ -1,0 +1,47 @@
+name:                  portmanteau-binary
+version:               0.0.1
+license:               AllRightsReserved
+author:                Charles O'Farrell <charleso@charleso.org>
+maintainer:            Charles O'Farrell <charleso@charleso.org>
+copyright:             (c) 2016 Charles O'Farrell.
+synopsis:              portmanteau-binary
+category:              System
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           portmanteau-binary
+
+library
+  build-depends:
+                      base                            >= 3          && < 5
+                    , ambiata-p
+                    , binary                          == 0.8.*
+                    , bytestring                      == 0.10.*
+                    , contravariant                   == 1.4.*
+                    , portmanteau-core
+                    , text                            == 1.2.*
+                    , transformers                    >= 0.4        && < 0.6
+
+  ghc-options:
+                    -Wall
+
+  hs-source-dirs:
+                    src
+
+  exposed-modules:
+                      Portmanteau.Binary
+                      Portmanteau.Binary.Codec
+                      Portmanteau.Binary.Primitives
+
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             test.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , ambiata-p
+                     , portmanteau-binary
+                     , portmanteau-core
+                     , portmanteau-lens
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
