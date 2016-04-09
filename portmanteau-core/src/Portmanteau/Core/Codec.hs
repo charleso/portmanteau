@@ -34,17 +34,17 @@ instance (Contravariant f, Functor g) => Profunctor (Codec' f g) where
 (|*|) :: (Divisible f, Applicative g) => Codec' f g a c -> Codec' f g b d -> Codec' f g (a, b) (c, d)
 (|*|) (Codec f0 g0) (Codec f1 g1) =
   Codec (divided f0 f1) ((,) <$> g0 <*> g1)
-infixl 4 |*|
+infixl 5 |*|
 
 (*|) :: (Divisible f, Applicative g) => Codec' f g () b -> Codec' f g c d -> Codec' f g c d
 (*|) (Codec f0 g0) (Codec f1 g1) =
   Codec (divide ((),) f0 f1) (g0 *> g1)
-infixl 5 *|
+infixl 6 *|
 
 (|*) :: (Divisible f, Applicative g) => Codec' f g a b -> Codec' f g () d -> Codec' f g a b
 (|*) (Codec f0 g0) (Codec f1 g1) =
   Codec (divide (,()) f0 f1) (g0 <* g1)
-infixl 5 |*
+infixl 6 |*
 
 (|||) :: (Decidable f, Alternative g) => Codec' f g a c -> Codec' f g b d -> Codec' f g (Either a b) (Either c d)
 (|||) (Codec f0 g0) (Codec f1 g1) =
