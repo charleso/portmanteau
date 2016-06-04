@@ -8,6 +8,7 @@ module Portmanteau.Core.Codec (
   , (*|)
   , (|*)
   , (|||)
+  , (|>|)
   ) where
 
 import           Data.Functor.Contravariant (Contravariant (..))
@@ -50,3 +51,8 @@ infixl 6 |*
 (|||) (Codec f0 g0) (Codec f1 g1) =
   Codec (f0 `chosen` f1) (Left <$> g0 <|> Right <$> g1)
 infixl 4 |||
+
+(|>|) :: (Contravariant f, Monad g) => (a2 -> a1) -> (b1 -> g b2) -> Codec' f g a1 b1 -> Codec' f g a2 b2
+(|>|) a b (Codec f g) =
+  Codec (contramap a f) (g >>= b)
+infixl 1 |>|
