@@ -35,24 +35,20 @@ type JsonCodec = Codec IdentityK ParserK Value
 type JsonObjectCodec = Codec IdentityK ParserK Object
 
 
-parserCodec :: Arrow a => (c -> b) -> (b -> m c) -> Codec a (Kleisli m) b c
-parserCodec a b =
-  Codec (arr a) (Kleisli b)
-
 jsonCodec :: (ToJSON a, FromJSON a) => JsonCodec a
 jsonCodec =
-  Codec (arr toJSON) (Kleisli parseJSON)
+  newCodec toJSON parseJSON
 
 field :: Text -> JsonObjectCodec Value
 field t =
-  parserCodec
+  newCodec
     (HM.singleton t)
     (maybe (fail $ "Not found " <> T.unpack t) return . HM.lookup t)
 
 jsonObjectCodec :: Text -> JsonCodec a -> JsonObjectCodec a
 jsonObjectCodec t c = let
   (e, d) = case c of Codec (Kleisli e') (Kleisli d') -> (e', d')
-  in parserCodec
+  in newCodec
     (HM.singleton t . runIdentity . ($) e)
     (maybe (fail $ "Not found " <> T.unpack t) (($) d) . HM.lookup t)
 

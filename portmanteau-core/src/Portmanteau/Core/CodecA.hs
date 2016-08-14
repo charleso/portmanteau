@@ -7,9 +7,10 @@ module Portmanteau.Core.CodecA (
   , (*|)
   , (|*)
   , (|+|)
+  , newCodec
   ) where
 
-import           Control.Arrow (Arrow (..), ArrowChoice (..), (>>>), (^>>), (>>^))
+import           Control.Arrow (Arrow (..), ArrowChoice (..), Kleisli (..), (>>>), (^>>), (>>^))
 import           Control.Category (Category (..))
 
 import           Data.Functor.Contravariant (Contravariant (..))
@@ -59,3 +60,7 @@ infixl 4 |+|
 (###) f g =
   f *** g >>> arr (\(a, b) -> a <> b)
 infixl 3 ###
+
+newCodec :: Arrow a => (c -> b) -> (b -> m c) -> Codec a (Kleisli m) b c
+newCodec a b =
+  Codec (arr a) (Kleisli b)
