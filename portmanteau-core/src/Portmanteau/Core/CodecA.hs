@@ -10,7 +10,7 @@ module Portmanteau.Core.CodecA (
   , newCodec
   ) where
 
-import           Control.Arrow (Arrow (..), ArrowChoice (..), Kleisli (..), (>>>), (^>>), (>>^))
+import           Control.Arrow (Arrow (..), ArrowChoice (..), ArrowPlus (..), Kleisli (..), (>>>), (^>>), (>>^), (<+>))
 import           Control.Category (Category (..))
 
 import           Data.Functor.Contravariant (Contravariant (..))
@@ -49,10 +49,9 @@ infixl 6 *|
   Codec ((\a -> (a, ())) ^>> f0 ### f1) (g0 &&& g1 >>^ fst)
 infixl 6 |*
 
-(|+|) :: (ArrowChoice f, ArrowChoice g) => Codec f g c a -> Codec f g c b -> Codec f g c (Either a b)
+(|+|) :: (ArrowChoice f, ArrowPlus g) => Codec f g c a -> Codec f g c b -> Codec f g c (Either a b)
 (|+|) (Codec f0 g0) (Codec f1 g1) =
-  -- TODO The decoder doesn't look right (ho ho) here
-  Codec (f0 ||| f1) (arr Right >>> g0 +++ g1)
+  Codec (f0 ||| f1) (arr Left . g0 <+> arr Right . g1)
 infixl 4 |+|
 
 -- FIX Should this live in Arrow?
