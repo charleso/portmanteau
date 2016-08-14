@@ -5,6 +5,7 @@ module Portmanteau.Aeson2 (
   , jsonCodec
   , jsonObjectCodec
   , (.|)
+  , field
   , jsonCodecEncode
   , jsonCodecDecode
   ) where
@@ -41,6 +42,12 @@ parserCodec a b =
 jsonCodec :: (ToJSON a, FromJSON a) => JsonCodec a
 jsonCodec =
   Codec (arr toJSON) (Kleisli parseJSON)
+
+field :: Text -> JsonObjectCodec Value
+field t =
+  parserCodec
+    (HM.singleton t)
+    (maybe (fail $ "Not found " <> T.unpack t) return . HM.lookup t)
 
 jsonObjectCodec :: Text -> JsonCodec a -> JsonObjectCodec a
 jsonObjectCodec t c = let
