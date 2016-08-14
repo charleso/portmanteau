@@ -8,7 +8,7 @@ module Portmanteau.Lens (
   , _Bool
   ) where
 
-import          Control.Arrow (Arrow, (^>>), (>>^))
+import          Control.Arrow (Arrow)
 import          Control.Lens (AnIso, cloneIso, view, from, under)
 
 import          Data.Profunctor (Profunctor (..))
@@ -26,10 +26,8 @@ import          Portmanteau.Lens.TH as X
 infixl 3 |$|
 
 (|&|) :: (Arrow f, Arrow g) => AnIso c c a a -> Codec f g b c -> Codec f g b a
-(|&|) i (Codec e d) =
-  Codec
-    ((view . from $ i) ^>> e)
-    (d >>^ (view . cloneIso $ i))
+(|&|) i =
+  cmap (view . from $ i) (view . cloneIso $ i)
 infixl 3 |&|
 
 -- FIX Expose more of these probably

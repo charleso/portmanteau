@@ -9,6 +9,7 @@ module Portmanteau.Core.CodecA (
   , (*|)
   , (|*)
   , (|+|)
+  , cmap
   , newCodec
   , mapDecoding
   , runDecoderK
@@ -66,6 +67,10 @@ infixl 4 |+|
 (###) f g =
   f *** g >>> arr (\(a, b) -> a <> b)
 infixl 3 ###
+
+cmap :: (Arrow f, Arrow g) => (a -> c) -> (c -> a) -> Codec f g b c -> Codec f g b a
+cmap f g (Codec e d) =
+  Codec (f ^>> e) (d >>^ g)
 
 newCodec :: Arrow a => (c -> b) -> (b -> m c) -> Codec a (Kleisli m) b c
 newCodec a b =
