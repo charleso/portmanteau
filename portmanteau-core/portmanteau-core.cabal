@@ -27,4 +27,5 @@ library
   exposed-modules:
                       Portmanteau.Core
                       Portmanteau.Core.Codec
+                      Portmanteau.Core.CodecA
                       Portmanteau.Core.Parser

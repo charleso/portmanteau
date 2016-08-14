@@ -3,12 +3,14 @@ import           System.Exit (exitFailure)
 import           System.IO (BufferMode (..), stdout, stderr, hSetBuffering)
 
 import qualified Test.Portmanteau.Aeson
+import qualified Test.Portmanteau.Aeson2
 
 
 main :: IO ()
 main =
   testAll [
       Test.Portmanteau.Aeson.tests
+    , Test.Portmanteau.Aeson2.tests
     ]
 
 
