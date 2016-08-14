@@ -16,7 +16,6 @@ import           Control.Monad.Trans.Reader (ReaderT (..))
 import           Data.Aeson (FromJSON (..), ToJSON (..), Object, Value (..))
 import           Data.Aeson.Types (Parser, parseEither, typeMismatch)
 import           Data.Functor.Contravariant (Op (..))
-import           Data.Functor.Identity
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 
@@ -26,13 +25,12 @@ import           Portmanteau.Core.CodecA
 
 
 type ParserK = Kleisli Parser
-type IdentityK = Kleisli Identity
 
 -- | Keep in mind that `Value` is _not_ a `Monoid`, which means most `Codec` operations won't work.
-type JsonCodec = Codec IdentityK ParserK Value
+type JsonCodec = Codec (->) ParserK Value
 
 -- | `Object` is a `Monoid`, which is required for `|*|`. `Value` is not.
-type JsonObjectCodec = Codec IdentityK ParserK Object
+type JsonObjectCodec = Codec (->) ParserK Object
 
 
 jsonCodec :: (ToJSON a, FromJSON a) => JsonCodec a
@@ -47,9 +45,9 @@ field t =
 
 jsonObjectCodec :: Text -> JsonCodec a -> JsonObjectCodec a
 jsonObjectCodec t c = let
-  (e, d) = case c of Codec (Kleisli e') (Kleisli d') -> (e', d')
+  (e, d) = case c of Codec e' (Kleisli d') -> (e', d')
   in newCodec
-    (HM.singleton t . runIdentity . ($) e)
+    (HM.singleton t . ($) e)
     (maybe (fail $ "Not found " <> T.unpack t) (($) d) . HM.lookup t)
 
 (.|) :: Text -> JsonCodec a -> JsonObjectCodec a
@@ -60,7 +58,7 @@ infixl 8 .|
 
 jsonCodecEncode :: JsonCodec a -> a -> Value
 jsonCodecEncode c =
-  runIdentity . runKleisli (codecAEncoder c)
+  codecAEncoder c
 
 jsonCodecDecode :: JsonCodec a -> Value -> Either [Char] a
 jsonCodecDecode c =
