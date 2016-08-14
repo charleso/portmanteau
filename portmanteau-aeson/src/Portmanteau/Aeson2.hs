@@ -24,13 +24,11 @@ import           P
 import           Portmanteau.Core.CodecA
 
 
-type ParserK = Kleisli Parser
-
 -- | Keep in mind that `Value` is _not_ a `Monoid`, which means most `Codec` operations won't work.
-type JsonCodec = Codec (->) ParserK Value
+type JsonCodec = CodecM Parser Value
 
 -- | `Object` is a `Monoid`, which is required for `|*|`. `Value` is not.
-type JsonObjectCodec = Codec (->) ParserK Object
+type JsonObjectCodec = CodecM Parser Object
 
 
 jsonCodec :: (ToJSON a, FromJSON a) => JsonCodec a
@@ -58,8 +56,8 @@ infixl 8 .|
 
 jsonCodecEncode :: JsonCodec a -> a -> Value
 jsonCodecEncode c =
-  codecAEncoder c
+  codecEncoder c
 
 jsonCodecDecode :: JsonCodec a -> Value -> Either [Char] a
 jsonCodecDecode c =
-  parseEither (runKleisli (codecADecoder c))
+  parseEither (runKleisli (codecDecoder c))

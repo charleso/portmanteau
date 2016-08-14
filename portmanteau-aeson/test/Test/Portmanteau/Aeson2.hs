@@ -6,14 +6,18 @@
 module Test.Portmanteau.Aeson2 where
 
 import           Control.Arrow ((>>>))
+import           Control.Category ((.))
 
-import           P
+import           Data.Aeson.Types (parseEither)
+
+import           P hiding ((.))
 
 import           Portmanteau.Core.CodecA
 import           Portmanteau.Aeson2
 
 import           System.IO (IO)
 
+import           Test.Portmanteau.Core.Codec
 import           Test.QuickCheck (Property, (===), quickCheckAll)
 import           Test.QuickCheck.Instances ()
 
@@ -29,13 +33,13 @@ prop_aeson_example_object (a :: ((Text, Int), [Bool])) =
 
 prop_aeson_example_object_2 (a :: ((Text, Int), [Bool])) =
   jsonCodecTripping a . (>>>) jsonCodec $
-        (field "a" >>> jsonCodec)
-    |*| (field "b" >>> jsonCodec)
-    |*| (field "c" >>> jsonCodec)
+        (jsonCodec . field "a")
+    |*| (jsonCodec . field "b")
+    |*| (jsonCodec . field "c")
 
 jsonCodecTripping :: (Eq a, Show a) => a -> JsonCodec a -> Property
 jsonCodecTripping a c =
-  jsonCodecDecode c (jsonCodecEncode c a) === pure a
+  codecLawsK (pure a) c parseEither
 
 
 return []

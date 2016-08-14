@@ -1,0 +1,15 @@
+name:                  portmanteau-core-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , ambiata-p
+                     , portmanteau-core
+                     , QuickCheck
+
+
+  exposed-modules:
+                     Test.Portmanteau.Core.Codec

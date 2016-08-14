@@ -1,13 +1,17 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RankNTypes #-}
 module Portmanteau.Core.CodecA (
     Codec (..)
+  , CodecM
   , (|*|)
   , (*|)
   , (|*)
   , (|+|)
   , newCodec
+  , mapDecoding
+  , runDecoderK
   ) where
 
 import           Control.Arrow (Arrow (..), ArrowChoice (..), ArrowPlus (..), Kleisli (..), (>>>), (^>>), (>>^), (<+>))
@@ -22,9 +26,12 @@ import           P hiding ((.), id)
 
 data Codec f g a b =
   Codec {
-      codecAEncoder :: f b a
-    , codecADecoder :: g a b
+      codecEncoder :: f b a
+    , codecDecoder :: g a b
     }
+
+-- | The most common form of Codec
+type CodecM m = Codec (->) (Kleisli m)
 
 
 instance (Category f, Category g) => Category (Codec f g) where
@@ -63,3 +70,11 @@ infixl 3 ###
 newCodec :: Arrow a => (c -> b) -> (b -> m c) -> Codec a (Kleisli m) b c
 newCodec a b =
   Codec (arr a) (Kleisli b)
+
+mapDecoding :: (forall x. m x -> n x) -> Codec f (Kleisli m) a b -> Codec f (Kleisli n) a b
+mapDecoding f (Codec e (Kleisli d)) =
+  Codec e (Kleisli . fmap f $ d)
+
+runDecoderK :: Codec f (Kleisli g) a b -> a -> g b
+runDecoderK (Codec _ (Kleisli g)) =
+  g

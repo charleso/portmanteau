@@ -40,5 +40,6 @@ test-suite test
                      , ambiata-p
                      , portmanteau-aeson
                      , portmanteau-core
+                     , portmanteau-core-test
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
