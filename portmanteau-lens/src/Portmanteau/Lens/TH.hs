@@ -33,6 +33,7 @@
 -- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -74,9 +75,17 @@ makeIsoWith f d = do
 
   (dname, cs) <-
     case info of
+#if MIN_VERSION_template_haskell(2,11,0)
+      TyConI (DataD _ name _ _ cs' _) ->
+#else
       TyConI (DataD _ name _ cs' _) ->
+#endif
         pure (name, cs')
+#if MIN_VERSION_template_haskell(2,11,0)
+      TyConI (NewtypeD _ name _ _ c _) ->
+#else
       TyConI (NewtypeD _ name _ c _) ->
+#endif
         pure (name, [c])
       _ ->
         fail $ show d <> " neither denotes a data or newtype declaration. Found: " <> show info
